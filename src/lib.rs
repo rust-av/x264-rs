@@ -8,8 +8,90 @@ use std::ffi::CString;
 
 pub struct Picture {
     pic: x264_picture_t,
-    height: i32, // to compute the slice dimension
+    plane_size: [usize; 3],
     native: bool,
+}
+
+struct ColorspaceScale {
+    w: [usize; 3],
+    h: [usize; 3],
+}
+fn scale_from_csp(csp: u32) -> ColorspaceScale {
+    if csp == X264_CSP_I420 {
+        ColorspaceScale {
+            w: [256 * 1, 256 / 2, 256 / 2],
+            h: [256 * 1, 256 / 2, 256 / 2],
+        }
+    } else if csp == X264_CSP_YV12 {
+        ColorspaceScale {
+            w: [256 * 1, 256 / 2, 256 / 2],
+            h: [256 * 1, 256 / 2, 256 / 2],
+        }
+    } else if csp == X264_CSP_NV12 {
+        ColorspaceScale {
+            w: [256 * 1, 256 * 1, 0],
+            h: [256 * 1, 256 / 2, 0],
+        }
+    } else if csp == X264_CSP_NV21 {
+        ColorspaceScale {
+            w: [256 * 1, 256 * 1, 0],
+            h: [256 * 1, 256 / 2, 0],
+        }
+    } else if csp == X264_CSP_I422 {
+        ColorspaceScale {
+            w: [256 * 1, 256 / 2, 256 / 2],
+            h: [256 * 1, 256 * 1, 256 * 1],
+        }
+    } else if csp == X264_CSP_YV16 {
+        ColorspaceScale {
+            w: [256 * 1, 256 / 2, 256 / 2],
+            h: [256 * 1, 256 * 1, 256 * 1],
+        }
+    } else if csp == X264_CSP_NV16 {
+        ColorspaceScale {
+            w: [256 * 1, 256 * 1, 0],
+            h: [256 * 1, 256 * 1, 0],
+        }
+        /*
+    } else if csp == X264_CSP_YUYV {
+        ColorspaceScale {
+            w: [256 * 2, 0, 0],
+            h: [256 * 1, 0, 0],
+        }
+    } else if csp == X264_CSP_UYVY {
+        ColorspaceScale {
+            w: [256 * 2, 0, 0],
+            h: [256 * 1, 0, 0],
+        }
+        */
+    } else if csp == X264_CSP_I444 {
+        ColorspaceScale {
+            w: [256 * 1, 256 * 1, 256 * 1],
+            h: [256 * 1, 256 * 1, 256 * 1],
+        }
+    } else if csp == X264_CSP_YV24 {
+        ColorspaceScale {
+            w: [256 * 1, 256 * 1, 256 * 1],
+            h: [256 * 1, 256 * 1, 256 * 1],
+        }
+    } else if csp == X264_CSP_BGR {
+        ColorspaceScale {
+            w: [256 * 3, 0, 0],
+            h: [256 * 1, 0, 0],
+        }
+    } else if csp == X264_CSP_BGRA {
+        ColorspaceScale {
+            w: [256 * 4, 0, 0],
+            h: [256 * 1, 0, 0],
+        }
+    } else if csp == X264_CSP_RGB {
+        ColorspaceScale {
+            w: [256 * 3, 0, 0],
+            h: [256 * 1, 0, 0],
+        }
+    } else {
+        unreachable!()
+    }
 }
 
 impl Picture {
@@ -23,7 +105,7 @@ impl Picture {
     }
 */
     pub fn from_param(param: &Param) -> Result<Picture, &'static str> {
-        let mut pic = unsafe { mem::uninitialized() };
+        let mut pic: x264_picture_t = unsafe { mem::uninitialized() };
 
         let ret = unsafe {
             x264_picture_alloc(&mut pic as *mut x264_picture_t,
@@ -34,9 +116,19 @@ impl Picture {
         if ret < 0 {
             Err("Allocation Failure")
         } else {
+            let scale = scale_from_csp(param.par.i_csp as u32 & X264_CSP_MASK as u32);
+            let bytes = 1 + (param.par.i_csp as u32 & X264_CSP_HIGH_DEPTH as u32);
+            let mut plane_size = [0; 3];
+
+            for i in 0..pic.img.i_plane as usize {
+                plane_size[i] = param.par.i_width as usize * scale.w[i] / 256 * bytes as usize *
+                                param.par.i_height as usize *
+                                scale.h[i] / 256;
+            }
+
             Ok(Picture {
                    pic: pic,
-                   height: param.par.i_height,
+                   plane_size: plane_size,
                    native: true,
                })
         }
@@ -46,8 +138,8 @@ impl Picture {
         if plane > self.pic.img.i_plane as usize {
             Err("Invalid Argument")
         } else {
-            let size = self.height * self.pic.img.i_stride[plane];
-            Ok(unsafe { std::slice::from_raw_parts(self.pic.img.plane[plane], size as usize) })
+            let size = self.plane_size[plane];
+            Ok(unsafe { std::slice::from_raw_parts(self.pic.img.plane[plane], size) })
         }
     }
 
@@ -55,8 +147,8 @@ impl Picture {
         if plane > self.pic.img.i_plane as usize {
             Err("Invalid Argument")
         } else {
-            let size = self.height * self.pic.img.i_stride[plane];
-            Ok(unsafe { std::slice::from_raw_parts_mut(self.pic.img.plane[plane], size as usize) })
+            let size = self.plane_size[plane];
+            Ok(unsafe { std::slice::from_raw_parts_mut(self.pic.img.plane[plane], size) })
         }
     }
 
