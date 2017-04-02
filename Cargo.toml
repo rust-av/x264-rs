@@ -14,3 +14,9 @@ x264-sys = { version = "0.1.0", path = "x264-sys" }
 [workspace]
 members = ["x264-sys"]
 
+[[example]]
+name = "encode"
+path = "examples/encode.rs"
+
+[dev-dependencies]
+regex ="0.2"
