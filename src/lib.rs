@@ -4,6 +4,7 @@ use std::mem;
 use ffi::x264::*;
 use std::ptr::null;
 use std::os::raw::c_int;
+use std::ffi::CString;
 
 pub struct Picture {
     pic: x264_picture_t,
@@ -88,12 +89,16 @@ impl Param {
 
         Param { par: par }
     }
-    pub fn default_preset<'a, O>(tune: O, preset: O) -> Result<Param, &'static str>
-        where O: Into<Option<&'a str>>
+    pub fn default_preset<'a, 'b, Oa, Ob>(tune: Oa, preset: Ob) -> Result<Param, &'static str>
+        where Oa: Into<Option<&'a str>>,
+              Ob: Into<Option<&'b str>>
     {
         let mut par = unsafe { mem::uninitialized() };
-        let c_tune = tune.into().map_or_else(|| null(), |v| v.as_ptr() as *const i8);
-        let c_preset = preset.into().map_or_else(|| null(), |v| v.as_ptr() as *const i8);
+        let t = tune.into().map_or_else(|| None, |v| Some(CString::new(v).unwrap()));
+        let p = preset.into().map_or_else(|| None, |v| Some(CString::new(v).unwrap()));
+
+        let c_tune = t.map_or_else(|| null(), |v| v.as_ptr() as *const i8);
+        let c_preset = p.map_or_else(|| null(), |v| v.as_ptr() as *const i8);
         match unsafe {
                   x264_param_default_preset(&mut par as *mut x264_param_t, c_tune, c_preset)
               } {
@@ -103,17 +108,20 @@ impl Param {
         }
     }
     pub fn apply_profile(mut self, profile: &str) -> Result<Param, &'static str> {
-        match unsafe { x264_param_apply_profile(&mut self.par, profile.as_ptr() as *const i8) } {
+        let p = CString::new(profile).unwrap();
+        match unsafe { x264_param_apply_profile(&mut self.par, p.as_ptr() as *const i8) } {
             -1 => Err("Invalid Argument"),
             0 => Ok(self),
             _ => Err("Unexpected"),
         }
     }
     pub fn param_parse<'a>(mut self, name: &str, value: &str) -> Result<Param, &'static str> {
+        let n = CString::new(name).unwrap();
+        let v = CString::new(value).unwrap();
         match unsafe {
                   x264_param_parse(&mut self.par,
-                                   name.as_ptr() as *const i8,
-                                   value.as_ptr() as *const i8)
+                                   n.as_ptr() as *const i8,
+                                   v.as_ptr() as *const i8)
               } {
             -1 => Err("Invalid Argument"),
             0 => Ok(self),
