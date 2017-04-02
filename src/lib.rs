@@ -198,14 +198,35 @@ impl Encoder {
         }
     }
 
-                data.vec.extend_from_slice(payload);
+    pub fn encode<'a, P>(&mut self, pic: P) -> Result<Option<(NalData, i64, i64)>, &'static str>
+        where P: Into<Option<&'a Picture>>
+    {
+        let mut pic_out: x264_picture_t = unsafe { mem::uninitialized() };
+        let mut c_nals: *mut x264_nal_t = unsafe { mem::uninitialized() };
+        let mut nb_nal: c_int = 0;
+        let c_pic = pic.into().map_or_else(|| null(), |v| &v.pic as *const x264_picture_t);
 
-                mem::forget(payload);
-                mem::forget(nal);
+        let ret = unsafe {
+            x264_encoder_encode(self.enc,
+                                &mut c_nals as *mut *mut x264_nal_t,
+                                &mut nb_nal as *mut c_int,
+                                c_pic as *mut x264_picture_t,
+                                &mut pic_out as *mut x264_picture_t)
+        };
+        if ret < 0 {
+            Err("Error encoding")
+        } else {
+            if nb_nal > 0 {
+                let data = NalData::from_nals(c_nals, nb_nal as usize);
+                Ok(Some((data, pic_out.i_pts, pic_out.i_dts)))
+            } else {
+                Ok(None)
             }
-
-            Ok(data)
         }
+    }
+
+    pub fn delayed_frames(&self) -> bool {
+        unsafe { x264_encoder_delayed_frames(self.enc) != 0 }
     }
 }
 
@@ -242,6 +263,34 @@ mod tests {
             let p = pic.as_slice(0).unwrap();
 
             assert_eq!(p[0], 1);
+        }
+    }
+
+    #[test]
+    fn test_encode() {
+        let mut par = Param::new().set_dimension(640, 480);
+        let mut enc = Encoder::open(&mut par).unwrap();
+        let mut pic = Picture::from_param(&par).unwrap();
+
+        let headers = enc.get_headers().unwrap();
+
+        println!("Headers len {}", headers.as_bytes().len());
+
+        for pts in 0..5 {
+            pic = pic.set_timestamp(pts as i64);
+            let ret = enc.encode(&pic).unwrap();
+            match ret {
+                Some((_, pts, dts)) => println!("Frame pts {}, dts {}", pts, dts),
+                _ => (),
+            }
+        }
+
+        while enc.delayed_frames() {
+            let ret = enc.encode(None).unwrap();
+            match ret {
+                Some((_, pts, dts)) => println!("Frame pts {}, dts {}", pts, dts),
+                _ => (),
+            }
         }
     }
 }
