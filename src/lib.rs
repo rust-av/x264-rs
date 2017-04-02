@@ -88,15 +88,14 @@ impl Param {
 
         Param { par: par }
     }
-    pub fn default_preset(tune: Option<&str>, preset: Option<&str>) -> Result<Param, &'static str> {
+    pub fn default_preset<'a, O>(tune: O, preset: O) -> Result<Param, &'static str>
+        where O: Into<Option<&'a str>>
+    {
         let mut par = unsafe { mem::uninitialized() };
-
+        let c_tune = tune.into().map_or_else(|| null(), |v| v.as_ptr() as *const i8);
+        let c_preset = preset.into().map_or_else(|| null(), |v| v.as_ptr() as *const i8);
         match unsafe {
-                  x264_param_default_preset(&mut par as *mut x264_param_t,
-                                            tune.map_or_else(|| null(),
-                                                             |v| v.as_ptr() as *const i8),
-                                            preset.map_or_else(|| null(), |v| v.as_ptr()) as
-                                            *const i8)
+                  x264_param_default_preset(&mut par as *mut x264_param_t, c_tune, c_preset)
               } {
             -1 => Err("Invalid Argument"),
             0 => Ok(Param { par: par }),
