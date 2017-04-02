@@ -5,6 +5,74 @@ use ffi::x264::*;
 use std::ptr::null;
 use std::os::raw::c_int;
 
+pub struct Picture {
+    pic: x264_picture_t,
+    height: i32, // to compute the slice dimension
+    native: bool,
+}
+
+impl Picture {
+    /*
+    pub fn new() -> Picture {
+        let mut pic = unsafe { mem::uninitialized() };
+
+        unsafe { x264_picture_init(&mut pic as *mut x264_picture_t) };
+
+        Picture { pic: pic }
+    }
+*/
+    pub fn from_param(param: &Param) -> Result<Picture, &'static str> {
+        let mut pic = unsafe { mem::uninitialized() };
+
+        let ret = unsafe {
+            x264_picture_alloc(&mut pic as *mut x264_picture_t,
+                               param.par.i_csp,
+                               param.par.i_width,
+                               param.par.i_height)
+        };
+        if ret < 0 {
+            Err("Allocation Failure")
+        } else {
+            Ok(Picture {
+                   pic: pic,
+                   height: param.par.i_height,
+                   native: true,
+               })
+        }
+    }
+
+    pub fn as_slice<'a>(&'a self, plane: usize) -> Result<&'a [u8], &'static str> {
+        if plane > self.pic.img.i_plane as usize {
+            Err("Invalid Argument")
+        } else {
+            let size = self.height * self.pic.img.i_stride[plane];
+            Ok(unsafe { std::slice::from_raw_parts(self.pic.img.plane[plane], size as usize) })
+        }
+    }
+
+    pub fn as_slice_mut<'a>(&'a mut self, plane: usize) -> Result<&'a mut [u8], &'static str> {
+        if plane > self.pic.img.i_plane as usize {
+            Err("Invalid Argument")
+        } else {
+            let size = self.height * self.pic.img.i_stride[plane];
+            Ok(unsafe { std::slice::from_raw_parts_mut(self.pic.img.plane[plane], size as usize) })
+        }
+    }
+
+    pub fn set_timestamp(mut self, pts: i64) -> Picture {
+        self.pic.i_pts = pts;
+        self
+    }
+}
+
+impl Drop for Picture {
+    fn drop(&mut self) {
+        if self.native {
+            unsafe { x264_picture_clean(&mut self.pic as *mut x264_picture_t) };
+        }
+    }
+}
+
 // TODO: Provide a builder API instead?
 pub struct Param {
     par: x264_param_t,
@@ -142,5 +210,20 @@ mod tests {
         let headers = enc.get_headers().unwrap();
 
         println!("Headers len {}", headers.as_bytes().len());
+    }
+
+    #[test]
+    fn test_picture() {
+        let par = Param::new().set_dimension(640, 480);
+        {
+            let mut pic = Picture::from_param(&par).unwrap();
+            {
+                let p = pic.as_slice_mut(0).unwrap();
+                p[0] = 1;
+            }
+            let p = pic.as_slice(0).unwrap();
+
+            assert_eq!(p[0], 1);
+        }
     }
 }
