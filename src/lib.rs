@@ -135,8 +135,30 @@ pub struct NalData {
 }
 
 impl NalData {
-    fn with_capacity(capacity: usize) -> NalData {
-        NalData { vec: Vec::with_capacity(capacity) }
+    /*
+     * x264 functions return x264_nal_t arrays that are valid only until another
+     * function of that kind is called.
+     *
+     * Always copy the data over.
+     *
+     * TODO: Consider using Bytes as backing store.
+     */
+    fn from_nals(c_nals: *mut x264_nal_t, nb_nal: usize) -> NalData {
+        let mut data = NalData { vec: Vec::new() };
+
+        for i in 0..nb_nal {
+            let nal = unsafe { Box::from_raw(c_nals.offset(i as isize)) };
+
+            let payload =
+                unsafe { std::slice::from_raw_parts(nal.p_payload, nal.i_payload as usize) };
+
+            data.vec.extend_from_slice(payload);
+
+            mem::forget(payload);
+            mem::forget(nal);
+        }
+
+        data
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -172,13 +194,9 @@ impl Encoder {
         if bytes < 0 {
             Err("Encoding Headers Failed")
         } else {
-            let mut data = NalData::with_capacity(bytes as usize);
-
-            for i in 0..nb_nal {
-                let nal = unsafe { Box::from_raw(c_nals.offset(i as isize)) };
-
-                let payload =
-                    unsafe { std::slice::from_raw_parts(nal.p_payload, nal.i_payload as usize) };
+            Ok(NalData::from_nals(c_nals, nb_nal as usize))
+        }
+    }
 
                 data.vec.extend_from_slice(payload);
 
