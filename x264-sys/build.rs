@@ -1,10 +1,10 @@
-extern crate libbindgen;
+extern crate bindgen;
 extern crate metadeps;
 
 use std::fs::OpenOptions;
 use std::io::Write;
 
-fn format_write(builder: libbindgen::Builder, output: &str) {
+fn format_write(builder: bindgen::Builder, output: &str) {
     let s = builder.generate()
         .unwrap()
         .to_string()
@@ -21,8 +21,8 @@ fn format_write(builder: libbindgen::Builder, output: &str) {
     let _ = file.write(s.as_bytes());
 }
 
-fn common_builder() -> libbindgen::Builder {
-    libbindgen::builder()
+fn common_builder() -> bindgen::Builder {
+    bindgen::builder()
         .raw_line("#![allow(dead_code)]")
         .raw_line("#![allow(non_camel_case_types)]")
         .raw_line("#![allow(non_snake_case)]")
