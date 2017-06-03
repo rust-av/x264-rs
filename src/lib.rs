@@ -143,7 +143,7 @@ impl Picture {
         }
     }
 
-    pub fn as_slice_mut<'a>(&'a mut self, plane: usize) -> Result<&'a mut [u8], &'static str> {
+    pub fn as_mut_slice<'a>(&'a mut self, plane: usize) -> Result<&'a mut [u8], &'static str> {
         if plane > self.pic.img.i_plane as usize {
             Err("Invalid Argument")
         } else {
@@ -356,7 +356,7 @@ mod tests {
         {
             let mut pic = Picture::from_param(&par).unwrap();
             {
-                let p = pic.as_slice_mut(0).unwrap();
+                let p = pic.as_mut_slice(0).unwrap();
                 p[0] = 1;
             }
             let p = pic.as_slice(0).unwrap();

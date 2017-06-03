@@ -37,7 +37,7 @@ fn main() {
     'out: loop {
         // TODO read by line, the stride could be different from width
         for plane in 0..3 {
-            let mut buf = pic.as_slice_mut(plane).unwrap();
+            let mut buf = pic.as_mut_slice(plane).unwrap();
             if input.read_exact(&mut buf).is_err() {
                 break 'out;
             }
