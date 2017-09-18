@@ -32,14 +32,19 @@ fn common_builder() -> bindgen::Builder {
 fn main() {
     let libs = metadeps::probe().unwrap();
     // TODO pass include paths to bindgen
-    // let headers = libs.get("x264").unwrap().include_paths.clone();
-    let buildver = libs.get("x264").unwrap().version.split(".").nth(1).unwrap();
+    let x264 = libs.get("x264").unwrap();
+    let headers = x264.include_paths.clone();
+    let buildver = x264.version.split(".").nth(1).unwrap();
 
-    let builder = common_builder()
+    let mut builder = common_builder()
         .raw_line(format!("pub unsafe fn x264_encoder_open(params: *mut x264_param_t) -> *mut x264_t {{
                                x264_encoder_open_{}(params)
                           }}", buildver))
         .header("data/x264.h");
+
+    for header in headers {
+        builder = builder.clang_arg("-I").clang_arg(header.to_str().unwrap());
+    }
 
     // Manually fix the comment so rustdoc won't try to pick them
     format_write(builder, "src/x264.rs");
