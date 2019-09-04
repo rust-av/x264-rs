@@ -19,4 +19,4 @@ name = "encode"
 path = "examples/encode.rs"
 
 [dev-dependencies]
-regex ="0.2"
+regex ="1.3"
