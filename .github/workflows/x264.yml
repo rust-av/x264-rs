@@ -1,0 +1,17 @@
+name: x264
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install x264
+      run: |
+        sudo apt-get install libx264-dev
+    - name: Run tests
+      run: |
+        cargo test --all-features --verbose

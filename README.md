@@ -1,6 +1,7 @@
 # x264 bindings
 
 [![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Actions Status](https://github.com/rust-av/x264-rs/workflows/x264/badge.svg)](https://github.com/rust-av/x264-rs/actions)
 
 It is a simple [binding][1] and safe abstraction over [x264][2].
 
