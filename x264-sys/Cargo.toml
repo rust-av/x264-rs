@@ -1,6 +1,6 @@
 [package]
 name = "x264-sys"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Luca Barbato <lu_zero@gentoo.org>"]
 license = "MIT"
 description = "FFI bindings to x264"
@@ -12,6 +12,6 @@ bindgen = "0.51"
 metadeps = "1.1"
 
 [package.metadata.pkg-config]
-x264 = "0.147"
+x264 = "0.155"
 
 [dependencies]
