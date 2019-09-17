@@ -1,32 +1,14 @@
-extern crate bindgen;
-extern crate metadeps;
-
-use std::fs::OpenOptions;
+use std::env;
+use std::fs::File;
+use std::path::PathBuf;
 use std::io::Write;
 
-fn format_write(builder: bindgen::Builder, output: &str) {
-    let s = builder.generate()
+fn format_write(builder: bindgen::Builder) -> String {
+    builder.generate()
         .unwrap()
         .to_string()
         .replace("/**", "/*")
-        .replace("/*!", "/*");
-
-    let mut file = OpenOptions::new()
-        .write(true)
-        .truncate(true)
-        .create(true)
-        .open(output)
-        .unwrap();
-
-    let _ = file.write(s.as_bytes());
-}
-
-fn common_builder() -> bindgen::Builder {
-    bindgen::builder()
-        .raw_line("#![allow(dead_code)]")
-        .raw_line("#![allow(non_camel_case_types)]")
-        .raw_line("#![allow(non_snake_case)]")
-        .raw_line("#![allow(non_upper_case_globals)]")
+        .replace("/*!", "/*")
 }
 
 fn main() {
@@ -36,7 +18,7 @@ fn main() {
     let headers = x264.include_paths.clone();
     let buildver = x264.version.split(".").nth(1).unwrap();
 
-    let mut builder = common_builder()
+    let mut builder = bindgen::builder()
         .raw_line(format!("pub unsafe fn x264_encoder_open(params: *mut x264_param_t) -> *mut x264_t {{
                                x264_encoder_open_{}(params)
                           }}", buildver))
@@ -47,5 +29,11 @@ fn main() {
     }
 
     // Manually fix the comment so rustdoc won't try to pick them
-    format_write(builder, "src/x264.rs");
+    let s = format_write(builder);
+
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+
+    let mut file = File::create(out_path.join("x264.rs")).unwrap();
+
+    let _ = file.write(s.as_bytes());
 }

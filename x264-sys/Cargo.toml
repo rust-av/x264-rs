@@ -5,11 +5,10 @@ authors = ["Luca Barbato <lu_zero@gentoo.org>"]
 license = "MIT"
 description = "FFI bindings to x264"
 repository = "https://github.com/rust-av/x264-rs"
-
-build = "build.rs"
+edition = "2018"
 
 [build-dependencies]
-bindgen = "0.30"
+bindgen = "0.51"
 metadeps = "1.1"
 
 [package.metadata.pkg-config]
