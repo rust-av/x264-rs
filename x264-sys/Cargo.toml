@@ -12,6 +12,6 @@ bindgen = "0.51"
 metadeps = "1.1"
 
 [package.metadata.pkg-config]
-x264 = "0.155"
+x264 = "0.147"
 
 [dependencies]
