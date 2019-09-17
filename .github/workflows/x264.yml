@@ -9,9 +9,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - name: Install nasm
+      run: |
+        sudo apt-get install nasm
     - name: Install x264
       run: |
-        sudo apt-get install libx264-dev
+        git clone --depth 1 https://code.videolan.org/videolan/x264.git
+        cd x264
+        ./configure --enable-static --prefix=$HOME/x264_dir
+        make -j4
+        make install
     - name: Run tests
       run: |
+        export PKG_CONFIG_PATH=$HOME/x264_dir/lib/pkgconfig:$PKG_CONFIG_PATH
         cargo test --all-features --verbose
