@@ -8,7 +8,7 @@ repository = "https://github.com/rust-av/x264-rs"
 edition = "2018"
 
 [build-dependencies]
-bindgen = "0.53"
+bindgen = "0.54"
 metadeps = "1.1"
 
 [package.metadata.pkg-config]
