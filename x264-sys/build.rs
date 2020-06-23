@@ -13,7 +13,7 @@ fn format_write(builder: bindgen::Builder) -> String {
 }
 
 fn main() {
-    let libs = metadeps::probe().unwrap();
+    let libs = system_deps::Config::new().probe().unwrap();
     // TODO pass include paths to bindgen
     let x264 = libs.get("x264").unwrap();
     let headers = x264.include_paths.clone();

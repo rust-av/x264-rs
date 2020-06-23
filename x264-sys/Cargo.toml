@@ -9,9 +9,9 @@ edition = "2018"
 
 [build-dependencies]
 bindgen = "0.54"
-metadeps = "1.1"
+system-deps = "1.3"
 
-[package.metadata.pkg-config]
+[package.metadata.system-deps]
 x264 = "0.147"
 
 [dependencies]
