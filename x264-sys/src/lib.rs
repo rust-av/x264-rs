@@ -17,7 +17,7 @@ mod tests {
     fn init_and_version() {
         unsafe {
             let mut par = mem::MaybeUninit::uninit();
-            x264_param_default( par.as_mut_ptr() );
+            x264_param_default(par.as_mut_ptr());
             let mut par = par.assume_init();
             par.i_width = 640;
             par.i_height = 480;
