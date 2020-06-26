@@ -15,4 +15,4 @@ The bindings are generated using the headers and libraries that ought to be pres
 - [x] Examples
 
 [1]: https://github.com/servo/rust-bindgen
-[2]: https://git.videolan.org/?p=x264.git
+[2]: https://code.videolan.org/videolan/x264
