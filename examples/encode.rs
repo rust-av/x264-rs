@@ -22,7 +22,7 @@ fn main() {
 
     let mut par = Param::default_preset("medium", None).unwrap();
 
-    par = par.set_dimension(w, h);
+    par = par.set_dimension(h, w);
     par = par.param_parse("repeat_headers", "1").unwrap();
     par = par.param_parse("annexb", "1").unwrap();
     par = par.apply_profile("high").unwrap();
