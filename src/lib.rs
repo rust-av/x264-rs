@@ -184,18 +184,19 @@ impl Param {
 
         Param { par: par }
     }
-    pub fn default_preset<'a, 'b, Oa, Ob>(tune: Oa, preset: Ob) -> Result<Param, &'static str>
+    pub fn default_preset<'a, 'b, Oa, Ob>(preset: Oa, tune: Ob) -> Result<Param, &'static str>
         where Oa: Into<Option<&'a str>>,
               Ob: Into<Option<&'b str>>
     {
         let mut par: mem::MaybeUninit<x264_param_t> = mem::MaybeUninit::uninit();
         let t = tune.into().map_or_else(|| None, |v| Some(CString::new(v).unwrap()));
         let p = preset.into().map_or_else(|| None, |v| Some(CString::new(v).unwrap()));
+        
+        let c_tune = t.as_ref().map_or_else(|| null(), |v| v.as_ptr() as *const i8);
+        let c_preset = p.as_ref().map_or_else(|| null(), |v| v.as_ptr() as *const i8);
 
-        let c_tune = t.map_or_else(|| null(), |v| v.as_ptr() as *const i8);
-        let c_preset = p.map_or_else(|| null(), |v| v.as_ptr() as *const i8);
         match unsafe {
-                  x264_param_default_preset(par.as_mut_ptr(), c_tune, c_preset)
+                  x264_param_default_preset(par.as_mut_ptr(), c_preset, c_tune)
               } {
             -1 => Err("Invalid Argument"),
             0 => Ok(Param { par: unsafe{ par.assume_init() } }),
