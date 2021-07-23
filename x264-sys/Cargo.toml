@@ -9,7 +9,7 @@ edition = "2018"
 
 [build-dependencies]
 bindgen = "0.59"
-system-deps = "2.0"
+system-deps = "3.2"
 
 [package.metadata.system-deps]
 x264 = "0.147"
