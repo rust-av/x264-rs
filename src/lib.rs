@@ -16,81 +16,76 @@ struct ColorspaceScale {
     w: [usize; 3],
     h: [usize; 3],
 }
+
+impl ColorspaceScale {
+    fn iter(&self) -> impl Iterator<Item = (&usize, &usize)> {
+        self.w.iter().zip(self.h.iter())
+    }
+}
+
 fn scale_from_csp(csp: u32) -> ColorspaceScale {
-    if csp == X264_CSP_I420 {
-        ColorspaceScale {
-            w: [256 * 1, 256 / 2, 256 / 2],
-            h: [256 * 1, 256 / 2, 256 / 2],
-        }
-    } else if csp == X264_CSP_YV12 {
-        ColorspaceScale {
-            w: [256 * 1, 256 / 2, 256 / 2],
-            h: [256 * 1, 256 / 2, 256 / 2],
-        }
-    } else if csp == X264_CSP_NV12 {
-        ColorspaceScale {
-            w: [256 * 1, 256 * 1, 0],
-            h: [256 * 1, 256 / 2, 0],
-        }
-    } else if csp == X264_CSP_NV21 {
-        ColorspaceScale {
-            w: [256 * 1, 256 * 1, 0],
-            h: [256 * 1, 256 / 2, 0],
-        }
-    } else if csp == X264_CSP_I422 {
-        ColorspaceScale {
-            w: [256 * 1, 256 / 2, 256 / 2],
-            h: [256 * 1, 256 * 1, 256 * 1],
-        }
-    } else if csp == X264_CSP_YV16 {
-        ColorspaceScale {
-            w: [256 * 1, 256 / 2, 256 / 2],
-            h: [256 * 1, 256 * 1, 256 * 1],
-        }
-    } else if csp == X264_CSP_NV16 {
-        ColorspaceScale {
-            w: [256 * 1, 256 * 1, 0],
-            h: [256 * 1, 256 * 1, 0],
-        }
-        /*
-    } else if csp == X264_CSP_YUYV {
-        ColorspaceScale {
-            w: [256 * 2, 0, 0],
-            h: [256 * 1, 0, 0],
-        }
-    } else if csp == X264_CSP_UYVY {
-        ColorspaceScale {
-            w: [256 * 2, 0, 0],
-            h: [256 * 1, 0, 0],
-        }
-        */
-    } else if csp == X264_CSP_I444 {
-        ColorspaceScale {
-            w: [256 * 1, 256 * 1, 256 * 1],
-            h: [256 * 1, 256 * 1, 256 * 1],
-        }
-    } else if csp == X264_CSP_YV24 {
-        ColorspaceScale {
-            w: [256 * 1, 256 * 1, 256 * 1],
-            h: [256 * 1, 256 * 1, 256 * 1],
-        }
-    } else if csp == X264_CSP_BGR {
-        ColorspaceScale {
+    match csp {
+        X264_CSP_I420 => ColorspaceScale {
+            w: [256, 256 / 2, 256 / 2],
+            h: [256, 256 / 2, 256 / 2],
+        },
+        X264_CSP_YV12 => ColorspaceScale {
+            w: [256, 256 / 2, 256 / 2],
+            h: [256, 256 / 2, 256 / 2],
+        },
+        X264_CSP_NV12 => ColorspaceScale {
+            w: [256, 256, 0],
+            h: [256, 256 / 2, 0],
+        },
+        X264_CSP_NV21 => ColorspaceScale {
+            w: [256, 256, 0],
+            h: [256, 256 / 2, 0],
+        },
+        X264_CSP_I422 => ColorspaceScale {
+            w: [256, 256 / 2, 256 / 2],
+            h: [256, 256, 256],
+        },
+        X264_CSP_YV16 => ColorspaceScale {
+            w: [256, 256 / 2, 256 / 2],
+            h: [256, 256, 256],
+        },
+        X264_CSP_NV16 => ColorspaceScale {
+            w: [256, 256, 0],
+            h: [256, 256, 0],
+        },
+        // X264_CSP_YUYV => {
+        //     ColorspaceScale {
+        //         w: [256 * 2, 0, 0],
+        //         h: [256, 0, 0],
+        //     }
+        // }
+        // X264_CSP_UYVY => {
+        //     ColorspaceScale {
+        //         w: [256 * 2, 0, 0],
+        //         h: [256, 0, 0],
+        //     }
+        // }
+        X264_CSP_I444 => ColorspaceScale {
+            w: [256, 256, 256],
+            h: [256, 256, 256],
+        },
+        X264_CSP_YV24 => ColorspaceScale {
+            w: [256, 256, 256],
+            h: [256, 256, 256],
+        },
+        X264_CSP_BGR => ColorspaceScale {
             w: [256 * 3, 0, 0],
-            h: [256 * 1, 0, 0],
-        }
-    } else if csp == X264_CSP_BGRA {
-        ColorspaceScale {
+            h: [256, 0, 0],
+        },
+        X264_CSP_BGRA => ColorspaceScale {
             w: [256 * 4, 0, 0],
-            h: [256 * 1, 0, 0],
-        }
-    } else if csp == X264_CSP_RGB {
-        ColorspaceScale {
+            h: [256, 0, 0],
+        },
+        X264_CSP_RGB => ColorspaceScale {
             w: [256 * 3, 0, 0],
-            h: [256 * 1, 0, 0],
-        }
-    } else {
-        unreachable!()
+            h: [256, 0, 0],
+        },
+        _ => unreachable!(),
     }
 }
 
@@ -117,20 +112,27 @@ impl Picture {
             Err("Allocation Failure")
         } else {
             let pic = unsafe{ pic.assume_init() };
+            let i_plane = pic.img.i_plane as usize;
 
             let scale = scale_from_csp(param.par.i_csp as u32 & X264_CSP_MASK as u32);
             let bytes = 1 + (param.par.i_csp as u32 & X264_CSP_HIGH_DEPTH as u32);
-            let mut plane_size = [0; 3];
 
-            for i in 0..pic.img.i_plane as usize {
-                plane_size[i] = param.par.i_width as usize * scale.w[i] / 256 * bytes as usize *
-                                param.par.i_height as usize *
-                                scale.h[i] / 256;
-            }
+            let mut plane_size = [0; 3];
+            plane_size
+                .iter_mut()
+                .zip(scale.iter())
+                .take(i_plane)
+                .for_each(|(size, (w, h))| {
+                    *size = param.par.i_width as usize * w / 256
+                        * bytes as usize
+                        * param.par.i_height as usize
+                        * h
+                        / 256;
+                });
 
             Ok(Picture {
-                   pic: pic,
-                   plane_size: plane_size,
+                   pic,
+                   plane_size,
                    native: true,
                })
         }
@@ -173,6 +175,12 @@ pub struct Param {
     par: x264_param_t,
 }
 
+impl Default for Param {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Param {
     pub fn new() -> Param {
         let mut par: mem::MaybeUninit<x264_param_t> = mem::MaybeUninit::uninit();
@@ -182,7 +190,7 @@ impl Param {
             par.assume_init()
         };
 
-        Param { par: par }
+        Param { par }
     }
     pub fn default_preset<'a, 'b, Oa, Ob>(preset: Oa, tune: Ob) -> Result<Param, &'static str>
         where Oa: Into<Option<&'a str>>,
@@ -192,8 +200,8 @@ impl Param {
         let t = tune.into().map_or_else(|| None, |v| Some(CString::new(v).unwrap()));
         let p = preset.into().map_or_else(|| None, |v| Some(CString::new(v).unwrap()));
         
-        let c_tune = t.as_ref().map_or_else(|| null(), |v| v.as_ptr() as *const i8);
-        let c_preset = p.as_ref().map_or_else(|| null(), |v| v.as_ptr() as *const i8);
+        let c_tune = t.as_ref().map_or_else(null, |v| v.as_ptr() as *const i8);
+        let c_preset = p.as_ref().map_or_else(null, |v| v.as_ptr() as *const i8);
 
         match unsafe {
                   x264_param_default_preset(par.as_mut_ptr(), c_preset, c_tune)
@@ -211,7 +219,7 @@ impl Param {
             _ => Err("Unexpected"),
         }
     }
-    pub fn param_parse<'a>(mut self, name: &str, value: &str) -> Result<Param, &'static str> {
+    pub fn param_parse(mut self, name: &str, value: &str) -> Result<Param, &'static str> {
         let n = CString::new(name).unwrap();
         let v = CString::new(value).unwrap();
         match unsafe {
@@ -250,14 +258,13 @@ impl NalData {
         let mut data = NalData { vec: Vec::new() };
 
         for i in 0..nb_nal {
-            let nal = unsafe { Box::from_raw(c_nals.offset(i as isize)) };
+            let nal = unsafe { Box::from_raw(c_nals.add(i)) };
 
             let payload =
                 unsafe { std::slice::from_raw_parts(nal.p_payload, nal.i_payload as usize) };
 
             data.vec.extend_from_slice(payload);
 
-            mem::forget(payload);
             mem::forget(nal);
         }
 
@@ -280,7 +287,7 @@ impl Encoder {
         if enc.is_null() {
             Err("Out of Memory")
         } else {
-            Ok(Encoder { enc: enc })
+            Ok(Encoder { enc })
         }
     }
 
@@ -308,7 +315,7 @@ impl Encoder {
         let mut pic_out: mem::MaybeUninit<x264_picture_t> = mem::MaybeUninit::uninit();
         let mut c_nals : mem::MaybeUninit<*mut x264_nal_t> = mem::MaybeUninit::uninit();
         let mut nb_nal: c_int = 0;
-        let c_pic = pic.into().map_or_else(|| null(), |v| &v.pic as *const x264_picture_t);
+        let c_pic = pic.into().map_or_else(null, |v| &v.pic as *const x264_picture_t);
 
         let ret = unsafe {
             x264_encoder_encode(self.enc,
@@ -386,17 +393,16 @@ mod tests {
         for pts in 0..5 {
             pic = pic.set_timestamp(pts as i64);
             let ret = enc.encode(&pic).unwrap();
-            match ret {
-                Some((_, pts, dts)) => println!("Frame pts {}, dts {}", pts, dts),
-                _ => (),
+
+            if let Some((_, pts, dts)) = ret {
+                println!("Frame pts {}, dts {}", pts, dts);
             }
         }
 
         while enc.delayed_frames() {
             let ret = enc.encode(None).unwrap();
-            match ret {
-                Some((_, pts, dts)) => println!("Frame pts {}, dts {}", pts, dts),
-                _ => (),
+            if let Some((_, pts, dts)) = ret {
+                println!("Frame pts {}, dts {}", pts, dts);
             }
         }
     }

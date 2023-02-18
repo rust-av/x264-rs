@@ -17,7 +17,7 @@ fn main() {
     // TODO pass include paths to bindgen
     let x264 = libs.get("x264").unwrap();
     let headers = x264.include_paths.clone();
-    let buildver = x264.version.split(".").nth(1).unwrap();
+    let buildver = x264.version.split('.').nth(1).unwrap();
 
     let mut builder = bindgen::builder()
         .raw_line(format!(

@@ -37,8 +37,8 @@ fn main() {
     'out: loop {
         // TODO read by line, the stride could be different from width
         for plane in 0..3 {
-            let mut buf = pic.as_mut_slice(plane).unwrap();
-            if input.read_exact(&mut buf).is_err() {
+            let buf = pic.as_mut_slice(plane).unwrap();
+            if input.read_exact(buf).is_err() {
                 break 'out;
             }
         }
@@ -47,14 +47,14 @@ fn main() {
         timestamp += 1;
         if let Some((nal, _, _)) = enc.encode(&pic).unwrap() {
             let buf = nal.as_bytes();
-            output.write(buf).unwrap();
+            output.write_all(buf).unwrap();
         }
     }
 
     while enc.delayed_frames() {
         if let Some((nal, _, _)) = enc.encode(None).unwrap() {
             let buf = nal.as_bytes();
-            output.write(buf).unwrap();
+            output.write_all(buf).unwrap();
         }
     }
 }
