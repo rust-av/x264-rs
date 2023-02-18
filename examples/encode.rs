@@ -1,5 +1,5 @@
-extern crate x264;
 extern crate regex;
+extern crate x264;
 
 use x264::*;
 
@@ -7,14 +7,16 @@ use regex::Regex;
 
 use std::env;
 use std::fs::File;
-use std::io::{Write, Read};
+use std::io::{Read, Write};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     let re = Regex::new(r"(\d+)x(\d+)").unwrap();
     if args.len() < 3 {
-        panic!("Missing argument:\nUsage:\n{} 640x480 in.yuv out.h264\n",
-               args[0]);
+        panic!(
+            "Missing argument:\nUsage:\n{} 640x480 in.yuv out.h264\n",
+            args[0]
+        );
     }
     let caps = re.captures(args[1].as_str()).unwrap();
     let w: usize = caps[1].parse().unwrap();

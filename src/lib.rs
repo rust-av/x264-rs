@@ -1,10 +1,10 @@
 extern crate x264_sys as ffi;
 
-use std::mem;
 use ffi::x264::*;
-use std::ptr::null;
-use std::os::raw::c_int;
 use std::ffi::CString;
+use std::mem;
+use std::os::raw::c_int;
+use std::ptr::null;
 
 pub struct Picture {
     pic: x264_picture_t,
@@ -91,27 +91,30 @@ fn scale_from_csp(csp: u32) -> ColorspaceScale {
 
 impl Picture {
     /*
-    pub fn new() -> Picture {
-        let mut pic = unsafe { mem::uninitialized() };
+        pub fn new() -> Picture {
+            let mut pic = unsafe { mem::uninitialized() };
 
-        unsafe { x264_picture_init(&mut pic as *mut x264_picture_t) };
+            unsafe { x264_picture_init(&mut pic as *mut x264_picture_t) };
 
-        Picture { pic: pic }
-    }
-*/
+            Picture { pic: pic }
+        }
+    */
+
     pub fn from_param(param: &Param) -> Result<Picture, &'static str> {
         let mut pic: mem::MaybeUninit<x264_picture_t> = mem::MaybeUninit::uninit();
 
         let ret = unsafe {
-            x264_picture_alloc(pic.as_mut_ptr(),
-                               param.par.i_csp,
-                               param.par.i_width,
-                               param.par.i_height)
+            x264_picture_alloc(
+                pic.as_mut_ptr(),
+                param.par.i_csp,
+                param.par.i_width,
+                param.par.i_height,
+            )
         };
         if ret < 0 {
             Err("Allocation Failure")
         } else {
-            let pic = unsafe{ pic.assume_init() };
+            let pic = unsafe { pic.assume_init() };
             let i_plane = pic.img.i_plane as usize;
 
             let scale = scale_from_csp(param.par.i_csp as u32 & X264_CSP_MASK as u32);
@@ -131,10 +134,10 @@ impl Picture {
                 });
 
             Ok(Picture {
-                   pic,
-                   plane_size,
-                   native: true,
-               })
+                pic,
+                plane_size,
+                native: true,
+            })
         }
     }
 
@@ -192,25 +195,32 @@ impl Param {
 
         Param { par }
     }
+
     pub fn default_preset<'a, 'b, Oa, Ob>(preset: Oa, tune: Ob) -> Result<Param, &'static str>
-        where Oa: Into<Option<&'a str>>,
-              Ob: Into<Option<&'b str>>
+    where
+        Oa: Into<Option<&'a str>>,
+        Ob: Into<Option<&'b str>>,
     {
         let mut par: mem::MaybeUninit<x264_param_t> = mem::MaybeUninit::uninit();
-        let t = tune.into().map_or_else(|| None, |v| Some(CString::new(v).unwrap()));
-        let p = preset.into().map_or_else(|| None, |v| Some(CString::new(v).unwrap()));
-        
+        let t = tune
+            .into()
+            .map_or_else(|| None, |v| Some(CString::new(v).unwrap()));
+        let p = preset
+            .into()
+            .map_or_else(|| None, |v| Some(CString::new(v).unwrap()));
+
         let c_tune = t.as_ref().map_or_else(null, |v| v.as_ptr() as *const i8);
         let c_preset = p.as_ref().map_or_else(null, |v| v.as_ptr() as *const i8);
 
-        match unsafe {
-                  x264_param_default_preset(par.as_mut_ptr(), c_preset, c_tune)
-              } {
+        match unsafe { x264_param_default_preset(par.as_mut_ptr(), c_preset, c_tune) } {
             -1 => Err("Invalid Argument"),
-            0 => Ok(Param { par: unsafe{ par.assume_init() } }),
+            0 => Ok(Param {
+                par: unsafe { par.assume_init() },
+            }),
             _ => Err("Unexpected"),
         }
     }
+
     pub fn apply_profile(mut self, profile: &str) -> Result<Param, &'static str> {
         let p = CString::new(profile).unwrap();
         match unsafe { x264_param_apply_profile(&mut self.par, p.as_ptr() as *const i8) } {
@@ -219,19 +229,23 @@ impl Param {
             _ => Err("Unexpected"),
         }
     }
+
     pub fn param_parse(mut self, name: &str, value: &str) -> Result<Param, &'static str> {
         let n = CString::new(name).unwrap();
         let v = CString::new(value).unwrap();
         match unsafe {
-                  x264_param_parse(&mut self.par,
-                                   n.as_ptr() as *const i8,
-                                   v.as_ptr() as *const i8)
-              } {
+            x264_param_parse(
+                &mut self.par,
+                n.as_ptr() as *const i8,
+                v.as_ptr() as *const i8,
+            )
+        } {
             -1 => Err("Invalid Argument"),
             0 => Ok(self),
             _ => Err("Unexpected"),
         }
     }
+
     pub fn set_dimension(mut self, height: usize, width: usize) -> Param {
         self.par.i_height = height as c_int;
         self.par.i_width = width as c_int;
@@ -296,33 +310,36 @@ impl Encoder {
         let mut c_nals: mem::MaybeUninit<*mut x264_nal_t> = mem::MaybeUninit::uninit();
 
         let bytes = unsafe {
-            x264_encoder_headers(self.enc,
-                                 c_nals.as_mut_ptr(),
-                                 &mut nb_nal as *mut c_int)
+            x264_encoder_headers(self.enc, c_nals.as_mut_ptr(), &mut nb_nal as *mut c_int)
         };
 
         if bytes < 0 {
             Err("Encoding Headers Failed")
         } else {
-            let c_nals = unsafe{ c_nals.assume_init() };
+            let c_nals = unsafe { c_nals.assume_init() };
             Ok(NalData::from_nals(c_nals, nb_nal as usize))
         }
     }
 
     pub fn encode<'a, P>(&mut self, pic: P) -> Result<Option<(NalData, i64, i64)>, &'static str>
-        where P: Into<Option<&'a Picture>>
+    where
+        P: Into<Option<&'a Picture>>,
     {
         let mut pic_out: mem::MaybeUninit<x264_picture_t> = mem::MaybeUninit::uninit();
-        let mut c_nals : mem::MaybeUninit<*mut x264_nal_t> = mem::MaybeUninit::uninit();
+        let mut c_nals: mem::MaybeUninit<*mut x264_nal_t> = mem::MaybeUninit::uninit();
         let mut nb_nal: c_int = 0;
-        let c_pic = pic.into().map_or_else(null, |v| &v.pic as *const x264_picture_t);
+        let c_pic = pic
+            .into()
+            .map_or_else(null, |v| &v.pic as *const x264_picture_t);
 
         let ret = unsafe {
-            x264_encoder_encode(self.enc,
-                                c_nals.as_mut_ptr(),
-                                &mut nb_nal as *mut c_int,
-                                c_pic as *mut x264_picture_t,
-                                pic_out.as_mut_ptr())
+            x264_encoder_encode(
+                self.enc,
+                c_nals.as_mut_ptr(),
+                &mut nb_nal as *mut c_int,
+                c_pic as *mut x264_picture_t,
+                pic_out.as_mut_ptr(),
+            )
         };
         if ret < 0 {
             Err("Error encoding")
