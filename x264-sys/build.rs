@@ -15,7 +15,7 @@ fn format_write(builder: bindgen::Builder) -> String {
 fn main() {
     let libs = system_deps::Config::new().probe().unwrap();
     // TODO pass include paths to bindgen
-    let x264 = libs.get("x264").unwrap();
+    let x264 = libs.get_by_name("x264").unwrap();
     let headers = x264.include_paths.clone();
     let buildver = x264.version.split('.').nth(1).unwrap();
 

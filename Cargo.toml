@@ -10,7 +10,7 @@ keywords = ["x264","h264"]
 edition = "2018"
 
 [dependencies]
-x264-sys = { version = "0.2.0", path = "x264-sys" }
+x264-sys = { version = "0.2.1", path = "x264-sys" }
 
 [workspace]
 members = ["x264-sys"]
